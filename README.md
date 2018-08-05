@@ -1,3 +1,16 @@
+# '''WARNING''' - THIS IS A NEW-FEATURES BRANCH
+
+The changes in this branch might have been posted as
+[Pull-Requests](https://github.com/Collinux/gohue/pulls) for the [upstream
+GoHue project in GitHub](https://github.com/Collinux/gohue), or are local
+branches in this repository.
+
+This list of new features may not be complete, but I'll try to keep it updated
+when I merge changes:
+
+- ...
+
+
 # GoHue
 Package hue interfaces Philips Hue devices to control lights, scenes, schedules, and groups.
 
