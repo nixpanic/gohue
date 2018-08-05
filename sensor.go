@@ -9,6 +9,7 @@
 package hue
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -94,5 +95,16 @@ func (s *Sensor) Refresh() error {
 	s.Config = sensor.Config
 	s.SWVersion = sensor.SWVersion
 	s.Name = sensor.Name
+	return nil
+}
+
+func (s *Sensor) SetName(name string) error {
+	uri := fmt.Sprintf("/api/%s/sensors/%d", s.Bridge.Username, s.Index)
+	body := make(map[string]string)
+	body["name"] = name
+	_, _, err := s.Bridge.Put(uri, body)
+	if err != nil {
+		return err
+	}
 	return nil
 }
