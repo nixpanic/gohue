@@ -327,6 +327,32 @@ func (bridge *Bridge) GetLightByName(name string) (Light, error) {
 	return Light{}, errors.New(errOut)
 }
 
+// FindNewSensors makes the bridge search the zigbee spectrum for sensors in
+// the area and will add them to the list of sensors available.
+// If successful these new sensors can be used by `Bridge.GetAllSensors`
+func (bridge *Bridge) FindNewSensors() error {
+	uri := fmt.Sprintf("/api/%s/sensors", bridge.Username)
+	_, _, err := bridge.Post(uri, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bridge *Bridge) parseSensorMap(sensorMap map[string]Sensor) ([]Sensor, error) {
+	// Parse the index, add the sensor to the list, and return the array
+	var err error
+	sensors := []Sensor{}
+	for index, sensor := range(sensorMap) {
+		sensor.Index, err = strconv.Atoi(index)
+		if err != nil {
+			return []Sensor{}, errors.New("Unable to convert sensor index to integer. ")
+		}
+		sensor.Bridge = bridge
+		sensors = append(sensors, sensor)
+	}
+	return sensors, nil
+}
 
 // GetAllSensors retrieves the state of all sensors that the bridge is aware of.
 func (bridge *Bridge) GetAllSensors() ([]Sensor, error) {
@@ -344,17 +370,27 @@ func (bridge *Bridge) GetAllSensors() ([]Sensor, error) {
 		return []Sensor{}, errors.New("Unable to marshal GetAllSensors response. ")
 	}
 
-	// Parse the index, add the sensor to the list, and return the array
-	sensors := make([]Sensor, 0, len(sensorList))
-	for index, sensor := range sensorList {
-		sensor.Index, err = strconv.Atoi(index)
-		if err != nil {
-			return []Sensor{}, errors.New("Unable to convert sensor index to integer. ")
-		}
-		sensor.Bridge = bridge
-		sensors = append(sensors, sensor)
+	return bridge.parseSensorMap(sensorList)
+}
+
+// GetNewSensors retrieves the sensors that have been deected since the last `Bridge.FindNewSensors`
+func (bridge *Bridge) GetNewSensors() ([]Sensor, error) {
+	uri := fmt.Sprintf("/api/%s/sensors/new", bridge.Username)
+	body, _, err := bridge.Get(uri)
+	if err != nil {
+		return []Sensor{}, err
 	}
-	return sensors, nil
+
+	// An index is at the top of every sensor in the array
+	// TODO: this fails because there is a "lastscan":"<timestamp>" in the list output
+	sensorList := map[string]Sensor{}
+	err = json.Unmarshal(body, &sensorList)
+	if err != nil {
+		fmt.Print(err)
+		return []Sensor{}, errors.New("Unable to marshal GetNewSensors response. ")
+	}
+
+	return bridge.parseSensorMap(sensorList)
 }
 
 // GetSensorByIndex returns a sensor struct containing data on
