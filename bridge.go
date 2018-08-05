@@ -32,6 +32,7 @@ type Bridge struct {
 	IPAddress string `json:"internalipaddress"`
 	Username  string
 	Info      BridgeInfo
+	Config    BridgeConfig
 }
 
 // BridgeInfo struct is the format for parsing xml from a bridge.
@@ -50,6 +51,87 @@ type BridgeInfo struct {
 		SerialNumber     string   `xml:"serialNumber"`
 		UDN              string   `xml:"UDN"`
 	} `xml:"device"`
+}
+
+// BridgeConfig contains much information about the features that the bridge
+// supports, version numbers of the firmware etc.
+//
+// URL: https://developers.meethue.com/documentation/configuration-api#72_get_configuration
+type BridgeConfig struct {
+	Name           string   `json:"name"`
+	whitelist      []string `json:"whitelist"`
+	SWVersion      string   `json:"swversion"`
+	linkbutton     bool     `json:"linkbutton"`
+	IPAddress      string   `json:"ipaddress"`
+	MAC            string   `json:"mac"`
+	Netmask        string   `json:"netmask"`
+	Gateway        string   `json:"gateway"`
+	DHCP           bool     `json:"dhcp"`
+	PortalServices bool     `json:"portalservices"`
+	UTC            string   `json:"UTC"`
+
+	// Available from 1.2.1
+	PortalState PortalState `json:"portalstate,omitempty"`
+	APIVersion  string      `json:"apiversion,omitempty"`
+	Localtime   string      `json:"localtime,omitempty"`
+	Timezone    string      `json:"timezone,omitempty"`
+
+	// Available from 1.3
+	ZigbeeChannel uint8 `json:"zigbeechannel,omitempty"`
+
+	// Available from 1.8
+	ModelID  string `json:"modelid,omitempty"`
+	BridgeID string `json:"bridgeid,omitempty"`
+
+	// Available from 1.10
+	FactoryNew       bool   `json:"factorynew,omitempty"`
+	ReplacesBridgeID string `json:"replacebridgeid,omitempty"`
+
+	// Available from 1.16
+	DatastoreVersion string `json:"datastoreversion,omitempty"`
+
+	// Available from 1.18
+	StarterkitID string `json:"starterkit,omitempty"`
+
+	// Deprecated in 1.20, and ignored
+	//SWUpdate SWUpdate `json:"swupdate,omitempty"`
+	// Available from 1.20
+	SWUpdate2 SWUpdate2 `json:"swupdate1,omitempty"`
+
+	// No longer available as of 1.21
+	ProxyAddress string `json:"proxyaddress,omitempty"`
+	ProxyPort    uint16 `json:"proxyport,omitempty"`
+}
+
+// PortalState describes the connection of the PortalServices
+type PortalState struct {
+	signedon      bool   `json:"signedon"`
+	incoming      bool   `json:"incoming"`
+	outgoing      bool   `json:"outgoing"`
+	communication string `json:"communication"`
+}
+
+// SWUpdate2 contains information related to software updates.
+type SWUpdate2 struct {
+	Bridge         SWUpdateState       `json:"bridge"`
+	CheckForUpdate bool                `json:"checkforupdate"`
+	State          string              `json:"state"`
+	Install        bool                `json:"install"`
+	AutoInstall    SWUpdateAutoInstall `json:"autoinstall"`
+	LastChange     string              `json:"lastchange"`
+	LastInstall    string              `json:"lastinstall"`
+}
+
+// SWUpdateState contains information about available/installed updates.
+type SWUpdateState struct {
+	State       string `json:"state"`
+	LastInstall string `json:"lastinstall"`
+}
+
+// SWUpdateAutoInstall describes the configuration for automatic updating.
+type SWUpdateAutoInstall struct {
+	UpdateTime string `json:"updatetime"`
+	On         bool   `json:"on"`
 }
 
 // Get sends an http GET to the bridge
@@ -199,6 +281,31 @@ func (bridge *Bridge) GetInfo() error {
 		return err
 	}
 	bridge.Info = data
+	return nil
+}
+
+// GetConfig retrieves the configuration of the bridge.
+// This can be used to identify available features based on the
+// BridgeConfig.APIVersion.
+func (bridge *Bridge) GetConfig() error {
+	if bridge.Username == "" {
+		err := errors.New("Error: need to login on the bride before getting the config. ")
+		return err
+	}
+
+	uri := fmt.Sprintf("/api/%s/config", bridge.Username)
+	body, _, err := bridge.Get(uri)
+	if err != nil {
+		return err
+	}
+	data := BridgeConfig{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		err = errors.New("Error: Unable to decode XML response from bridge. ")
+		return err
+	}
+	bridge.Config = data
+
 	return nil
 }
 
