@@ -8,8 +8,9 @@ branches in this repository.
 This list of new features may not be complete, but I'll try to keep it updated
 when I merge changes:
 
-- support for Group coming from github.com:nixpanic/gohue
-- support for Bridge.Config coming from github.com:nixpanic/gohue
+- support for Group coming from github.com:nixpanic/gohue:groups
+- support for Bridge.Config coming from github.com:nixpanic/gohue:bridgeconfig
+- support for Sensor coming from https://github.com/mitchellrj/gohue:sensor_support
 - ...
 
 
